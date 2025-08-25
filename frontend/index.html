@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Personal Finance & Investment Advisor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-chart-line"></i> AI Finance Advisor</h1>
+                <p>Your Personal Finance & Investment Coach</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Transaction Input Section -->
+            <section class="transaction-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-plus-circle"></i> Add Transaction</h2>
+                </div>
+                <form id="transactionForm" class="transaction-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="type">Type</label>
+                            <select id="type" required>
+                                <option value="">Select Type</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount (₹)</label>
+                            <input type="number" id="amount" step="0.01" min="0" required placeholder="Enter amount in Rupees">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <input type="text" id="category" required placeholder="e.g., Food, Salary, Rent">
+                        </div>
+                        <div class="form-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" required>
+                        </div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="description">Description (Optional)</label>
+                        <input type="text" id="description" placeholder="Additional details">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Transaction
+                    </button>
+                </form>
+            </section>
+
+            <!-- Dashboard Section -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Financial Dashboard</h2>
+                    <button id="refreshBtn" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button id="clearAllBtn" class="btn btn-danger" style="margin-left:10px;">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+                
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="card">
+                        <div class="card-icon income">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Income</h3>
+                            <p id="totalIncome">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon expense">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Total Expenses</h3>
+                            <p id="totalExpenses">₹0.00</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon net">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Net Amount</h3>
+                            <p id="netAmount">₹0.00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3><i class="fas fa-chart-bar"></i> Income vs Expenses</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="incomeExpenseChart" class="chart-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3><i class="fas fa-chart-pie"></i> Expense Categories</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="categoryChart" class="chart-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Advice Section -->
+            <section class="ai-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-robot"></i> AI Financial Advisor</h2>
+                    <button id="getAdviceBtn" class="btn btn-ai">
+                        <i class="fas fa-magic"></i> Get AI Advice
+                    </button>
+                </div>
+                
+                <div id="aiAdviceContainer" class="ai-advice-container">
+                    <div class="advice-placeholder">
+                        <i class="fas fa-lightbulb"></i>
+                        <p>Click "Get AI Advice" to receive personalized financial recommendations based on your transaction history.</p>
+                    </div>
+                </div>
+
+                <!-- Quick Tips -->
+                <div class="quick-tips">
+                    <h3><i class="fas fa-tips"></i> Quick Financial Tips</h3>
+                    <div id="quickTips" class="tips-container">
+                        <!-- Tips will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Transactions -->
+            <section class="transactions-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-history"></i> Recent Transactions</h2>
+                    <div class="filters">
+                        <select id="typeFilter">
+                            <option value="">All Types</option>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                        <input type="text" id="categoryFilter" placeholder="Filter by category">
+                    </div>
+                </div>
+                <div id="transactionsList" class="transactions-list">
+                    <!-- Transactions will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification hidden">
+        <span id="notificationMessage"></span>
+        <button id="closeNotification" class="close-btn">&times;</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
