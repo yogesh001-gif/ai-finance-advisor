@@ -45,8 +45,8 @@ A comprehensive web application that acts as your personal finance coach, powere
 - **Indexed queries** for better performance
 - **Data aggregation** for analytics
 
-### AI Integration (OpenAI API)
-- **GPT-3.5-turbo** for generating financial advice
+### AI Integration (Gemini API)
+- **Google Gemini API** for generating financial advice
 - **Contextual prompts** with user's financial data
 - **Structured responses** for actionable recommendations
 
@@ -55,7 +55,7 @@ A comprehensive web application that acts as your personal finance coach, powere
 ### Prerequisites
 - Node.js (v14 or higher)
 - MongoDB (local or cloud instance)
-- OpenAI API key
+- Gemini API key (Google Generative AI)
 
 ### Backend Setup
 
@@ -73,8 +73,8 @@ A comprehensive web application that acts as your personal finance coach, powere
    ```env
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/ai-finance-advisor
-   OPENAI_API_KEY=your_openai_api_key_here
-   OPENAI_MODEL=gpt-3.5-turbo
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-1.5-flash
    ```
 
 4. Start the server:
@@ -173,7 +173,7 @@ The AI analyzes your financial data and provides advice on:
 ## Data Security
 
 - All financial data is stored locally in your MongoDB instance
-- No sensitive financial information is permanently stored by OpenAI
+- No sensitive financial information is permanently stored by Gemini API or Google
 - API communications use HTTPS in production
 - Rate limiting implemented to prevent abuse
 
@@ -196,9 +196,9 @@ Modify `frontend/styles.css` to customize the application's appearance.
    - Ensure MongoDB is running
    - Check the connection string in `.env`
 
-2. **OpenAI API Errors**
-   - Verify your API key is correct
-   - Check your OpenAI account has available credits
+2. **Gemini API Errors**
+   - Verify your Gemini API key is correct
+   - Check your Google Generative AI account has available credits
    - Ensure the model specified exists
 
 3. **CORS Issues**
@@ -240,4 +240,4 @@ For issues and questions:
 
 ---
 
-**Note**: This application is for educational and personal use. Always consult with qualified financial advisors for major financial decisions.
+**Note**: This application is for educational and personal use. AI advice is powered by Google Gemini API. Always consult with qualified financial advisors for major financial decisions.
