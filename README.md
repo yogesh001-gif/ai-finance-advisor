@@ -2,27 +2,93 @@
 
 A comprehensive web application that acts as your personal finance coach, powered by AI to provide intelligent financial recommendations.
 
+
 ## Features
 
+### 🔒 Authentication & Security
+- **User Registration**: Sign up with name, email, and password
+- **Secure Login with OTP**: Password-based login with email OTP verification (OTP expires in 5 minutes, 5 attempts max)
+- **Resend OTP**: Request a new OTP if needed
+- **Profile Management**: Update name/email, change password, deactivate account
+- **JWT-based Auth**: Secure API access with tokens
+- **Password Hashing**: All passwords are hashed (bcrypt)
+- **.env Security**: Sensitive config is never pushed to GitHub
+
+### 🏠 Landing Page & User Journey
+- **Modern Landing Page**: Highlights features, testimonials, and app value
+- **Onboarding Flow**: Sign up or log in from the landing page
+- **Auth Overlay**: Modal for login, registration, and OTP verification
+- **Responsive Design**: Works on desktop and mobile
+
 ### 🔧 Core Functionality
-- **Transaction Tracking**: Add and categorize income and expenses
-- **Financial Dashboard**: Visual representation of your financial health
-- **AI-Powered Advice**: Get personalized financial recommendations
-- **Investment Suggestions**: AI-driven investment opportunities
-- **Tax Optimization**: Strategies to minimize tax burden
-- **Savings Recommendations**: Actionable ways to improve savings rate
+- **Transaction Tracking**: Add, edit, and categorize income/expenses
+- **Financial Dashboard**: Visual summary of your financial health
+- **Category Management**: Auto-learned categories, filter by category
+- **Data Filtering**: Filter by date, type, and category
+- **Delete Transactions**: Remove individual or all transactions
 
 ### 📊 Visualizations
-- Income vs Expenses chart (Chart.js)
-- Category-wise expense breakdown
-- Monthly spending patterns
-- Financial summary cards
+- **Income vs Expenses Chart**: Bar/line chart (Chart.js)
+- **Expense Breakdown**: Pie chart by category
+- **Monthly Trends**: Spending and income patterns
+- **Summary Cards**: Income, expenses, net, and more
 
 ### 🤖 AI Features
-- Personalized financial analysis
-- Budget optimization suggestions
-- Investment recommendations based on financial capacity
-- Quick financial tips and best practices
+- **Personalized Financial Analysis**: AI reviews your real data
+- **Budget Optimization**: Category-specific advice
+- **Investment Recommendations**: SIP, mutual funds, and more
+- **Tax & Savings Tips**: Actionable, data-driven suggestions
+- **Quick Tips**: One-click access to best practices
+- **Chatbot (optional)**: Ask finance questions (if enabled)
+
+### 🏆 Gamification & Rewards
+- **Achievements**: Earn badges for milestones (transactions, savings, streaks, investments, budgeting)
+- **Challenges**: Daily, weekly, and monthly goals (e.g., save ₹100/day, track 5 categories/week)
+- **Points & Levels**: Level up as you earn points
+- **Streaks**: Track daily/weekly/monthly consistency
+- **Leaderboard**: See top users (future multi-user support)
+- **Notifications**: In-app reminders and achievement unlocks
+
+### 📱 Other Features
+- **Responsive UI**: Mobile and desktop friendly
+- **Customizable Categories**: Add any category you want
+- **Data Security**: All data stored in your MongoDB
+- **Planned**: Goal setting, bill reminders, PDF/CSV export, multi-currency, mobile app, bank integration
+## Authentication & User Flow
+
+### Registration
+- User provides name, email, password (min 6 chars, confirmed)
+- Email must be unique
+- Password is hashed before storage
+- On success, user receives a JWT token
+
+### Login & OTP Verification
+1. User enters email and password
+2. If credentials are valid, a 6-digit OTP is generated and emailed (expires in 5 min)
+3. User enters OTP in the app
+4. If OTP is correct and not expired, login is completed and JWT is issued
+5. Up to 5 OTP attempts allowed; after that, must request new OTP
+6. User can request OTP resend if needed
+
+### Authenticated Actions
+- All sensitive routes require JWT in headers
+- Users can update profile (name/email), change password, and logout (client-side token removal)
+- Password changes require current password
+
+### Security Notes
+- All passwords are hashed (bcrypt)
+- JWT tokens are used for stateless authentication
+- .env file is excluded from version control
+- OTPs are stored in-memory (use Redis for production)
+- Email sending uses secure SMTP (configurable)
+
+### Landing Page & Onboarding
+- The landing page introduces the app, features, and value
+- Users can sign up or log in directly from the landing page
+- Auth overlay handles registration, login, and OTP verification in a user-friendly modal
+- After login, users are redirected to their dashboard
+
+---
 
 ## Project Architecture
 
@@ -57,6 +123,19 @@ A comprehensive web application that acts as your personal finance coach, powere
 - MongoDB (local or cloud instance)
 - Gemini API key (Google Generative AI)
 
+
+### Quick Start (Recommended)
+
+You can use the provided batch scripts to quickly start the app:
+
+```bash
+start-app.bat           # Starts both backend and frontend
+start-backend.bat       # Starts backend only
+start-frontend.bat      # Starts frontend only
+```
+
+Or follow the manual steps below for more control.
+
 ### Backend Setup
 
 1. Navigate to the backend directory:
@@ -69,7 +148,7 @@ A comprehensive web application that acts as your personal finance coach, powere
    npm install
    ```
 
-3. Create a `.env` file with your configuration:
+3. Create a `.env` file with your configuration (see example below). **Note:** `.env` is excluded from version control for security.
    ```env
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/ai-finance-advisor
@@ -82,6 +161,7 @@ A comprehensive web application that acts as your personal finance coach, powere
    npm run dev
    ```
 
+
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
@@ -89,19 +169,20 @@ A comprehensive web application that acts as your personal finance coach, powere
    cd frontend
    ```
 
-2. Open `index.html` in a web browser or serve it using a local server:
+2. Open `index.html` in a web browser, or serve it using a local server:
    ```bash
-   # Using Python
-   python -m http.server 3001
-   
    # Using Node.js http-server (recommended)
    npx http-server -p 3001
-   
-   # Using npm script
+
+   # Or use the provided script
    npm start
    ```
 
 3. The application will be available at `http://127.0.0.1:3001`
+## Environment Variables & Security
+
+- The `.env` file contains sensitive information (API keys, database URIs) and is now excluded from version control via `.gitignore`.
+- Make sure to create your own `.env` file in the backend directory before running the app.
 
 ## API Documentation
 
@@ -188,7 +269,10 @@ Edit the prompt in `backend/routes/aiAdvice.js` to customize the type of advice 
 ### Styling Changes
 Modify `frontend/styles.css` to customize the application's appearance.
 
-## Troubleshooting
+
+## Troubleshooting & Tips
+5. **.env file pushed by mistake**
+   - If you accidentally pushed your `.env` file, remove it from the repo and commit again. The current setup ensures `.env` is ignored.
 
 ### Common Issues
 
@@ -231,7 +315,8 @@ Modify `frontend/styles.css` to customize the application's appearance.
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
+
+## Support & Contact
 
 For issues and questions:
 1. Check the troubleshooting section
