@@ -5,8 +5,10 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 const aiAdviceRoutes = require('./routes/aiAdvice');
+const gamificationRoutes = require('./routes/gamification');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,7 +16,13 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // increased limit for normal usage
+  message: { error: 'Too many requests. Please try again later.' }
+});
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
@@ -24,9 +32,11 @@ app.use(limiter);
 // Middleware
 app.use(cors({
   origin: [
-    'http://127.0.0.1:3001',  // Primary frontend port
+    'http://127.0.0.1:8080',  // Frontend port
+    'http://localhost:8080',  // Alternative localhost
+    'http://127.0.0.1:3001',  // Legacy frontend port
     'http://localhost:3001',  // Alternative localhost
-    'http://192.168.0.150:3001', // Network access
+    'http://192.168.0.150:8080', // Network access
     'http://localhost:3000',  // Fallback for development
     'http://127.0.0.1:3000'   // Fallback for development
   ],
@@ -39,15 +49,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-finance-advisor', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
 })
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/ai-advice', aiAdviceRoutes);
+app.use('/api/gamification', gamificationRoutes);
 
 // Handle preflight requests for all routes
 app.options('*', (req, res) => {

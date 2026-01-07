@@ -1,22 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
+const { authenticate } = require('../middleware/auth');
 
-// DELETE /api/transactions/clear-all - Delete all transactions
+// All routes require authentication
+router.use(authenticate);
+
+// DELETE /api/transactions/clear-all - Delete all transactions for user
 router.delete('/clear-all', async (req, res) => {
   try {
-    await Transaction.deleteMany({});
-    res.json({ message: 'All transactions cleared.' });
+    await Transaction.deleteMany({ userId: req.userId });
+    res.json({ message: 'All your transactions cleared.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// GET /api/transactions - Get all transactions
+// GET /api/transactions - Get all transactions for user
 router.get('/', async (req, res) => {
   try {
     const { startDate, endDate, type, category } = req.query;
-    let query = {};
+    let query = { userId: req.userId };
 
     // Filter by date range
     if (startDate || endDate) {
@@ -60,7 +64,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/transactions - Add new transaction
+// POST /api/transactions - Add new transaction for user
 router.post('/', async (req, res) => {
   try {
     const { type, amount, category, description, date, tags } = req.body;
@@ -85,6 +89,7 @@ router.post('/', async (req, res) => {
     }
 
     const transaction = new Transaction({
+      userId: req.userId,
       type,
       amount: parseFloat(amount),
       category,
@@ -100,17 +105,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/transactions/categories - Get all categories
+// GET /api/transactions/categories - Get all categories for user
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await Transaction.distinct('category');
+    const categories = await Transaction.distinct('category', { userId: req.userId });
     res.json(categories);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// GET /api/transactions/stats - Get financial statistics
+// GET /api/transactions/stats - Get financial statistics for user
 router.get('/stats', async (req, res) => {
   try {
     const { months = 6 } = req.query;
@@ -118,6 +123,7 @@ router.get('/stats', async (req, res) => {
     startDate.setMonth(startDate.getMonth() - parseInt(months));
 
     const transactions = await Transaction.find({
+      userId: req.userId,
       date: { $gte: startDate }
     });
 
@@ -153,6 +159,22 @@ router.get('/stats', async (req, res) => {
       categoryStats,
       period: `${months} months`
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/transactions/:id - Delete specific transaction
+router.delete('/:id', async (req, res) => {
+  try {
+    const transaction = await Transaction.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.userId 
+    });
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    res.json({ message: 'Transaction deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

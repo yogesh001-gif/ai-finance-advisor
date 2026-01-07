@@ -18,5 +18,8 @@
     "advisor"
   ],
   "author": "Yogesh Ahlawat",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
 }

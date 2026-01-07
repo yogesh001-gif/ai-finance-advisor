@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const Transaction = require('../models/Transaction');
+const { authenticate } = require('../middleware/auth');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+// All routes require authentication
+router.use(authenticate);
 
 // POST /api/ai-advice - Get AI financial advice
 router.post('/', async (req, res) => {
@@ -14,19 +18,19 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Get user's financial data from last 6 months
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-        const transactions = await Transaction.find({
-            date: { $gte: sixMonthsAgo }
-        }).sort({ date: -1 });
+        // Get ALL user's financial data for comprehensive analysis
+        const transactions = await Transaction.find({ userId: req.userId }).sort({ date: -1 });
 
         if (transactions.length === 0) {
             return res.status(400).json({
                 error: 'No transaction data found. Please add some transactions first.'
             });
         }
+
+        // Calculate the actual period covered by transactions
+        const oldestDate = transactions[transactions.length - 1].date;
+        const newestDate = transactions[0].date;
+        const monthsCovered = Math.max(1, Math.ceil((newestDate - oldestDate) / (1000 * 60 * 60 * 24 * 30)));
 
         // Calculate financial summary
         const totalIncome = transactions
@@ -42,26 +46,66 @@ router.post('/', async (req, res) => {
 
         // Category breakdown
         const expenseCategories = {};
+        const incomeCategories = {};
+        
         transactions
             .filter(t => t.type === 'expense')
             .forEach(t => {
                 expenseCategories[t.category] = (expenseCategories[t.category] || 0) + t.amount;
+            });
+            
+        transactions
+            .filter(t => t.type === 'income')
+            .forEach(t => {
+                incomeCategories[t.category] = (incomeCategories[t.category] || 0) + t.amount;
             });
 
         // Sort categories by spending
         const topExpenseCategories = Object.entries(expenseCategories)
             .sort(([,a], [,b]) => b - a)
             .slice(0, 5);
+            
+        const topIncomeCategories = Object.entries(incomeCategories)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3);
 
-        // Monthly spending pattern
+        // Monthly spending pattern and trend analysis
         const monthlyData = {};
         transactions.forEach(t => {
             const month = t.date.toISOString().substring(0, 7);
             if (!monthlyData[month]) {
-                monthlyData[month] = { income: 0, expenses: 0 };
+                monthlyData[month] = { income: 0, expenses: 0, transactions: 0 };
             }
             monthlyData[month][t.type === 'income' ? 'income' : 'expenses'] += t.amount;
+            monthlyData[month].transactions++;
         });
+
+        // Calculate trends
+        const sortedMonths = Object.keys(monthlyData).sort();
+        let incomeGrowth = 0;
+        let expenseGrowth = 0;
+        
+        if (sortedMonths.length >= 2) {
+            const firstMonth = monthlyData[sortedMonths[0]];
+            const lastMonth = monthlyData[sortedMonths[sortedMonths.length - 1]];
+            
+            incomeGrowth = firstMonth.income > 0 ? 
+                ((lastMonth.income - firstMonth.income) / firstMonth.income) * 100 : 0;
+            expenseGrowth = firstMonth.expenses > 0 ? 
+                ((lastMonth.expenses - firstMonth.expenses) / firstMonth.expenses) * 100 : 0;
+        }
+
+        // Financial health indicators
+        const avgMonthlyIncome = totalIncome / monthsCovered;
+        const avgMonthlyExpenses = totalExpenses / monthsCovered;
+        const expenseRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
+        
+        // Emergency fund assessment
+        const recommendedEmergencyFund = avgMonthlyExpenses * 6;
+        const currentEmergencyFundStatus = netSavings >= recommendedEmergencyFund ? 'Adequate' : 'Insufficient';
+        
+        // Investment capacity
+        const investmentCapacity = Math.max(0, netSavings * 0.7); // 70% of savings for investment
 
         // Prepare prompt for AI
         const financialSummary = {
@@ -69,57 +113,73 @@ router.post('/', async (req, res) => {
             totalExpenses: totalExpenses.toFixed(2),
             netSavings: netSavings.toFixed(2),
             savingsRate: savingsRate.toFixed(1),
+            expenseRatio: expenseRatio.toFixed(1),
+            incomeGrowth: incomeGrowth.toFixed(1),
+            expenseGrowth: expenseGrowth.toFixed(1),
             topExpenseCategories: topExpenseCategories.map(([cat, amount]) => 
+                `${cat}: ₹${amount.toFixed(2)} (${((amount/totalExpenses)*100).toFixed(1)}%)`
+            ),
+            topIncomeCategories: topIncomeCategories.map(([cat, amount]) => 
                 `${cat}: ₹${amount.toFixed(2)}`
             ),
             monthlyAverage: {
-                income: (totalIncome / 6).toFixed(2),
-                expenses: (totalExpenses / 6).toFixed(2)
-            }
+                income: avgMonthlyIncome.toFixed(2),
+                expenses: avgMonthlyExpenses.toFixed(2)
+            },
+            emergencyFund: {
+                recommended: recommendedEmergencyFund.toFixed(2),
+                status: currentEmergencyFundStatus,
+                gap: Math.max(0, recommendedEmergencyFund - netSavings).toFixed(2)
+            },
+            investmentCapacity: investmentCapacity.toFixed(2)
         };
 
-        const prompt = `As a personal finance advisor for an Indian client, analyze this financial data and provide specific, actionable advice in Indian context:
+        const prompt = `You are a personal finance advisor. Analyze this EXACT financial data and give SPECIFIC advice based ONLY on these numbers. Do NOT give generic advice.
 
-Financial Summary (Last 6 months):
-- Total Income: ₹${financialSummary.totalIncome}
-- Total Expenses: ₹${financialSummary.totalExpenses}
-- Net Savings: ₹${financialSummary.netSavings}
-- Savings Rate: ${financialSummary.savingsRate}%
-- Monthly Average Income: ₹${financialSummary.monthlyAverage.income}
-- Monthly Average Expenses: ₹${financialSummary.monthlyAverage.expenses}
+USER'S ACTUAL FINANCIAL DATA (${transactions.length} transactions over ${monthsCovered} month(s)):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INCOME:
+• Total Income: ₹${financialSummary.totalIncome}
+• Monthly Average: ₹${financialSummary.monthlyAverage.income}
+• Sources: ${financialSummary.topIncomeCategories.length > 0 ? financialSummary.topIncomeCategories.join(' | ') : 'No income recorded'}
 
-Top Expense Categories:
-${financialSummary.topExpenseCategories.join('\n')}
+EXPENSES:
+• Total Expenses: ₹${financialSummary.totalExpenses}
+• Monthly Average: ₹${financialSummary.monthlyAverage.expenses}
+• Top Spending: ${financialSummary.topExpenseCategories.length > 0 ? financialSummary.topExpenseCategories.join(' | ') : 'No expenses recorded'}
 
-Please provide advice considering Indian financial context:
-1. **Budget Analysis**: Assess the current financial health in Indian context
-2. **Savings Recommendations**: Specific ways to improve savings rate (consider Indian savings instruments like PPF, EPF, NSC)
-3. **Expense Optimization**: Which categories to focus on reducing
-4. **Investment Suggestions**: Based on current savings capacity (consider SIP, mutual funds, stocks, FDs, etc.)
-5. **Tax Optimization Tips**: Strategies to minimize tax burden under Indian Income Tax (Section 80C, 80D, etc.)
-6. **Emergency Fund**: Recommendations for emergency savings in Indian context
+SAVINGS:
+• Net Savings: ₹${financialSummary.netSavings}
+• Savings Rate: ${financialSummary.savingsRate}%
+• Emergency Fund Status: ${financialSummary.emergencyFund.status} (Gap: ₹${financialSummary.emergencyFund.gap})
+• Available for Investment: ₹${financialSummary.investmentCapacity}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Keep advice practical, specific, and actionable for Indian residents. Include specific amounts in Indian Rupees where relevant. Consider Indian financial products and tax laws.`;
+INSTRUCTIONS: You MUST reference the EXACT numbers above in your response. Give personalized advice.
+
+**1. 📊 Financial Health Score**
+Rate their finances (Poor/Fair/Good/Excellent) based on their ${financialSummary.savingsRate}% savings rate. Mention their exact income ₹${financialSummary.totalIncome} and expenses ₹${financialSummary.totalExpenses}.
+
+**2. 💡 Budget Optimization**
+Look at their TOP SPENDING categories above. Tell them exactly which category to reduce and by how much ₹.
+
+**3. 💰 Savings Recommendation**
+Based on their monthly income ₹${financialSummary.monthlyAverage.income}, suggest exact monthly savings target. Recommend PPF/FD/Liquid Funds with specific amounts.
+
+**4. 📈 Investment Plan**
+They have ₹${financialSummary.investmentCapacity} available. Suggest exact SIP amounts for mutual funds. Give specific allocation (e.g., "₹X in ELSS, ₹Y in Index Fund").
+
+**5. ✅ Action Items This Month**
+Give 3 specific actions with exact ₹ amounts based on their data.
+
+Keep response focused and use their ACTUAL numbers throughout.`;
 
         // Get AI response using Gemini
-        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-1.5-flash' });
-        
-        const result = await model.generateContent({
-            contents: [{
-                role: 'user',
-                parts: [{
-                    text: `You are an expert personal finance advisor. Provide practical, specific, and actionable financial advice based on the user's financial data.
-
-${prompt}`
-                }]
-            }],
-            generationConfig: {
-                maxOutputTokens: 1500,
-                temperature: 0.7,
-            },
+        const result = await ai.models.generateContent({
+            model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+            contents: prompt
         });
-
-        const advice = result.response.text();
+        const advice = result.text;
 
         res.json({
             advice,
@@ -127,7 +187,7 @@ ${prompt}`
             metadata: {
                 analysisDate: new Date().toISOString(),
                 dataPoints: transactions.length,
-                periodAnalyzed: '6 months'
+                periodAnalyzed: `${monthsCovered} month(s)`
             }
         });
 
@@ -211,6 +271,129 @@ router.get('/quick-tips', async (req, res) => {
         res.json({ tips });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /api/ai-advice/chat - Chatbot endpoint
+router.post('/chat', async (req, res) => {
+    try {
+        const { message } = req.body;
+
+        if (!message || message.trim().length === 0) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
+        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
+            return res.status(500).json({ 
+                error: 'Gemini API key not configured. Please set your API key in the .env file.' 
+            });
+        }
+
+        // Get ALL user's financial data for comprehensive context
+        const allTransactions = await Transaction.find({ userId: req.userId }).sort({ date: -1 });
+
+        let financialContext = '';
+        let topExpenseCategory = 'expenses';
+        let userTotalIncome = 0;
+        
+        if (allTransactions.length > 0) {
+            const totalIncome = allTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = allTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const netSavings = totalIncome - totalExpenses;
+            const savingsRate = totalIncome > 0 ? ((netSavings / totalIncome) * 100).toFixed(1) : 0;
+            
+            userTotalIncome = totalIncome;
+            
+            // Get category breakdown
+            const expenseCategories = {};
+            const incomeCategories = {};
+            allTransactions.filter(t => t.type === 'expense').forEach(t => {
+                expenseCategories[t.category] = (expenseCategories[t.category] || 0) + t.amount;
+            });
+            allTransactions.filter(t => t.type === 'income').forEach(t => {
+                incomeCategories[t.category] = (incomeCategories[t.category] || 0) + t.amount;
+            });
+            
+            // Get top expense category
+            const sortedExpenses = Object.entries(expenseCategories).sort(([,a], [,b]) => b - a);
+            if (sortedExpenses.length > 0) {
+                topExpenseCategory = sortedExpenses[0][0];
+            }
+            
+            const topExpenses = sortedExpenses
+                .slice(0, 5)
+                .map(([cat, amt]) => `${cat}: ₹${amt.toFixed(2)}`)
+                .join(', ');
+            
+            const topIncomes = Object.entries(incomeCategories)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 3)
+                .map(([cat, amt]) => `${cat}: ₹${amt.toFixed(2)}`)
+                .join(', ');
+            
+            financialContext = `
+━━━━ USER'S ACTUAL FINANCIAL DATA ━━━━
+Total Transactions: ${allTransactions.length}
+Total Income: ₹${totalIncome.toFixed(2)}
+Total Expenses: ₹${totalExpenses.toFixed(2)}
+Net Savings: ₹${netSavings.toFixed(2)}
+Savings Rate: ${savingsRate}%
+Income Sources: ${topIncomes || 'None recorded'}
+Expense Categories: ${topExpenses || 'None recorded'}
+All Categories Used: ${[...new Set(allTransactions.map(t => t.category))].join(', ')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+        }
+
+        const chatPrompt = `You are a helpful Indian personal finance assistant. Answer the user's question using their ACTUAL financial data below.
+
+${financialContext}
+
+USER'S QUESTION: ${message}
+
+RULES:
+1. If the user has financial data above, ALWAYS use their EXACT numbers (₹ amounts, categories, percentages) in your response.
+2. Give SPECIFIC advice, not generic tips. For example:
+   - Instead of "reduce expenses", say "reduce your ${topExpenseCategory} spending"
+   - Instead of "save more", say "based on your ₹${userTotalIncome.toFixed(0)} income, aim to save ₹X monthly"
+3. If asked about their finances, quote their exact data.
+4. For investment questions, calculate specific SIP amounts based on their savings.
+5. Keep response concise but helpful.
+6. Use Indian financial context (PPF, ELSS, SIP, Section 80C, etc.)
+
+If the question is NOT about finance, politely redirect to financial topics.
+
+Answer:`;
+
+        const result = await ai.models.generateContent({
+            model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+            contents: chatPrompt
+        });
+        const response = result.text;
+        res.json({
+            response,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Chat Error:', error);
+        
+        if (error.message && error.message.includes('API key')) {
+            return res.status(401).json({ 
+                error: 'Invalid Gemini API key. Please check your API key configuration.' 
+            });
+        }
+        
+        if (error.message && error.message.includes('quota')) {
+            return res.status(402).json({ 
+                error: 'Gemini API quota exceeded. Please check your billing.' 
+            });
+        }
+
+        res.status(500).json({ 
+            error: 'Unable to process your question at this time. Please try again later.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 

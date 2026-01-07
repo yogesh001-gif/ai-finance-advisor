@@ -241,3 +241,4 @@ For issues and questions:
 ---
 
 **Note**: This application is for educational and personal use. AI advice is powered by Google Gemini API. Always consult with qualified financial advisors for major financial decisions.
+npm install http-server --save-dev
