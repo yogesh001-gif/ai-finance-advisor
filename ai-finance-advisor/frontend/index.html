@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <title>AI Personal Finance & Investment Advisor</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Landing page display fix - when landing is visible, body should be block */
+        body:has(.landing-page:not(.hidden):not([style*="display: none"])) {
+            display: block !important;
+        }
+        
+        /* Landing page layout */
+        .landing-page {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 100vw;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .landing-page.hidden {
+            display: none !important;
+        }
+        
+        /* Override section-header for landing page sections */
+        .landing-page .section-header {
+            display: block;
+            text-align: center;
+            margin-bottom: 64px;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .landing-page .section-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+        
+        /* Specific section header overrides */
+        .features-section .section-header,
+        .steps-section .section-header,
+        .testimonials-section .section-header {
+            display: block;
+            text-align: center;
+        }
+        
+        /* Footer links */
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .footer-links h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: white;
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 32px;
+            margin-top: 32px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+        
+        /* Badge icon */
+        .badge-icon {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+        
+        /* Mobile menu hamburger button styles */
+        @media (max-width: 768px) {
+            .landing-mobile-menu {
+                display: flex !important;
+                flex-direction: column;
+                gap: 5px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 5px;
+            }
+            
+            .landing-mobile-menu span {
+                display: block;
+                width: 25px;
+                height: 3px;
+                background: var(--text-color);
+                border-radius: 2px;
+                transition: all 0.3s;
+            }
+            
+            /* Landing page section header mobile override */
+            .landing-page .section-header {
+                margin-bottom: 40px;
+            }
+            
+            .landing-page .section-header h2 {
+                font-size: 1.75rem;
+            }
+            
+            /* Footer bottom mobile */
+            .footer-bottom {
+                padding-top: 24px;
+                margin-top: 24px;
+            }
+            
+            /* Section container padding mobile */
+            .section-container {
+                padding: 0 16px;
+            }
+            
+            /* Feature and testimonial sections mobile */
+            .features-section,
+            .steps-section,
+            .testimonials-section {
+                padding: 60px 0;
+            }
+            
+            /* CTA section mobile */
+            .cta-section {
+                padding: 60px 20px;
+            }
+            
+            /* Footer mobile */
+            .landing-footer {
+                padding: 40px 16px 20px;
+            }
+            
+            /* Theme toggle button mobile */
+            .theme-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
+            
+            .footer-bottom p {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* Extra small mobile screens */
+        @media (max-width: 480px) {
+            .landing-page .section-header {
+                margin-bottom: 32px;
+            }
+            
+            .landing-page .section-header h2 {
+                font-size: 1.5rem;
+            }
+            
+            .section-label {
+                font-size: 0.75rem;
+            }
+            
+            .section-subtitle {
+                font-size: 0.9rem;
+            }
+            
+            /* Hero adjustments for small screens */
+            .hero-badge {
+                font-size: 0.8rem;
+                padding: 8px 14px;
+            }
+            
+            /* Nav buttons column on very small screens */
+            .nav-buttons {
+                gap: 8px;
+            }
+            
+            .nav-btn {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* Very small screens (360px and below) */
+        @media (max-width: 360px) {
+            .landing-logo span {
+                font-size: 0.9rem;
+            }
+            
+            .nav-logo-img {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .landing-page .section-header h2 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Landing Page -->
+    <div id="landing-page" class="landing-page">
+        <!-- Navigation -->
+        <nav class="landing-nav">
+            <div class="landing-nav-container">
+                <a href="#" class="landing-logo">
+                    <img src="logo.png" alt="AI Finance Advisor" class="nav-logo-img">
+                    <span>AI Finance Advisor</span>
+                </a>
+                <div class="landing-nav-links" id="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#testimonials">Reviews</a>
+                    <button id="landing-theme-toggle" class="theme-toggle-btn" title="Toggle Dark Mode">
+                        <i class="fas fa-moon"></i>
+                        <i class="fas fa-sun"></i>
+                    </button>
+                    <div class="nav-buttons">
+                        <button id="landing-login-btn" class="nav-btn nav-btn-outline">Sign In</button>
+                        <button id="landing-signup-btn" class="nav-btn nav-btn-primary">Get Started</button>
+                    </div>
+                </div>
+                <button class="landing-mobile-menu" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-container">
+                <div class="hero-content hero-text">
+                    <div class="hero-badge">
+                        <i class="fas fa-star badge-icon"></i>
+                        <span>#1 AI Finance App in India</span>
+                    </div>
+                    <h1 class="hero-title">Take Control of Your <span class="hero-highlight">Financial Future</span></h1>
+                    <p class="hero-description">Smart expense tracking, AI-powered insights, and personalized investment advice — all in one beautiful app.</p>
+                    <div class="hero-actions">
+                        <button id="hero-get-started" class="btn-hero-primary">
+                            Get Started Free <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="btn-hero-secondary" onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
+                            <i class="fas fa-play-circle"></i> Watch Demo
+                        </button>
+                    </div>
+                    <div class="hero-metrics">
+                        <div class="metric">
+                            <span class="metric-value">10K+</span>
+                            <span class="metric-label">Users</span>
+                        </div>
+                        <div class="metric-divider"></div>
+                        <div class="metric">
+                            <span class="metric-value">₹50Cr+</span>
+                            <span class="metric-label">Tracked</span>
+                        </div>
+                        <div class="metric-divider"></div>
+                        <div class="metric">
+                            <span class="metric-value">4.9★</span>
+                            <span class="metric-label">Rating</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="dashboard-preview">
+                        <div class="preview-window">
+                            <div class="preview-header">
+                                <div class="preview-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <span class="preview-title">AI Finance Dashboard</span>
+                            </div>
+                            <div class="preview-content">
+                                <div class="preview-chart"></div>
+                                <div class="preview-stats">
+                                    <div class="preview-stat">
+                                        <span class="preview-stat-value">₹2.4L</span>
+                                        <span class="preview-stat-label">Balance</span>
+                                    </div>
+                                    <div class="preview-stat">
+                                        <span class="preview-stat-value">+12%</span>
+                                        <span class="preview-stat-label">Growth</span>
+                                    </div>
+                                    <div class="preview-stat">
+                                        <span class="preview-stat-value">₹15K</span>
+                                        <span class="preview-stat-label">Saved</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <span class="section-label">Features</span>
+                    <h2 class="section-title">Everything You Need</h2>
+                    <p class="section-subtitle">Powerful tools to manage your money smarter</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
+                        <h3>Smart Dashboard</h3>
+                        <p>Beautiful charts and real-time analytics at a glance</p>
+                    </div>
+                    <div class="feature-card highlight">
+                        <span class="feature-badge">Popular</span>
+                        <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                        <h3>AI Advisor</h3>
+                        <p>Personalized advice powered by advanced AI</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                        <h3>AI Chat</h3>
+                        <p>Ask any financial question, get instant answers</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-trophy"></i></div>
+                        <h3>Gamification</h3>
+                        <p>Earn rewards as you build better habits</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h3>Bank Security</h3>
+                        <p>256-bit encryption keeps your data safe</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                        <h3>Any Device</h3>
+                        <p>Access from desktop, tablet, or mobile</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="steps-section">
+            <div class="section-container">
+                <div class="section-header light">
+                    <span class="section-label">How It Works</span>
+                    <h2 class="section-title">3 Simple Steps</h2>
+                    <p class="section-subtitle">Get started in under a minute</p>
+                </div>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-icon"><i class="fas fa-user-plus"></i></div>
+                        <h3>Create Account</h3>
+                        <p>Sign up free in 30 seconds</p>
+                    </div>
+                    <span class="step-connector"><i class="fas fa-chevron-right"></i></span>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-icon"><i class="fas fa-plus-circle"></i></div>
+                        <h3>Track Money</h3>
+                        <p>Add income and expenses</p>
+                    </div>
+                    <span class="step-connector"><i class="fas fa-chevron-right"></i></span>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-icon"><i class="fas fa-chart-line"></i></div>
+                        <h3>Get Insights</h3>
+                        <p>AI analyzes and advises</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section id="testimonials" class="testimonials-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <span class="section-label">Testimonials</span>
+                    <h2 class="section-title">Loved by 10,000+ Users</h2>
+                    <p class="section-subtitle">See what our community says</p>
+                </div>
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <p class="testimonial-text">"This app helped me save ₹50,000 in just 3 months. The AI insights are amazing!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-info">
+                                <strong>Priya Sharma</strong>
+                                <span>Software Engineer</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card featured">
+                        <div class="testimonial-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <p class="testimonial-text">"The gamification keeps me motivated. I've built a savings habit I never thought possible!"</p>
+                        <div class="testimonial-author">
+                            <div class="author-info">
+                                <strong>Rahul Patel</strong>
+                                <span>Entrepreneur</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="testimonial-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <p class="testimonial-text">"Finally an app that makes finance fun! The AI chatbot is incredibly helpful."</p>
+                        <div class="testimonial-author">
+                            <div class="author-info">
+                                <strong>Anita Desai</strong>
+                                <span>Marketing Director</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="cta-container">
+                <div class="cta-content">
+                    <h2>Ready to Transform Your Finances?</h2>
+                    <p>Join 10,000+ users building wealth with AI Finance Advisor</p>
+                    <button id="cta-signup-btn" class="btn-cta">
+                        Get Started Free <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <div class="cta-trust">
+                        <span><i class="fas fa-check"></i> Free Forever</span>
+                        <span><i class="fas fa-check"></i> No Credit Card</span>
+                        <span><i class="fas fa-check"></i> Cancel Anytime</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="landing-footer">
+            <div class="footer-top">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <div class="footer-logo-wrapper">
+                            <img src="logo.png" alt="AI Finance Advisor" class="footer-logo-img">
+                            <span>AI Finance Advisor</span>
+                        </div>
+                        <p>Your AI-powered personal finance companion.</p>
+                        <div class="footer-social">
+                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#how-it-works">How It Works</a>
+                        <a href="#testimonials">Reviews</a>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Company</h4>
+                        <a href="#">About</a>
+                        <a href="#">Blog</a>
+                        <a href="#">Contact</a>
+                    </div>
+                    <div class="footer-links">
+                        <h4>Legal</h4>
+                        <a href="#">Privacy</a>
+                        <a href="#">Terms</a>
+                        <a href="#">Security</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 AI Finance Advisor. Made with ❤️ in India</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Auth Modal Overlay -->
+    <div id="auth-overlay" class="auth-overlay hidden">
+        <div class="auth-container">
+            <button class="auth-close-btn" id="auth-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="auth-header">
+                <img src="logo.png" alt="AI Finance Advisor" class="auth-logo">
+                <h1>AI Finance Advisor</h1>
+                <p>Your Personal Financial Assistant</p>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <h2>Welcome Back!</h2>
+                <div class="form-group">
+                    <label for="login-email"><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password"><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span>Sign In</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <div class="auth-error" id="login-error"></div>
+                <div class="auth-divider">
+                    <span>or continue with</span>
+                </div>
+                <div class="social-login">
+                    <button type="button" class="social-btn google">
+                        <i class="fab fa-google"></i>
+                    </button>
+                    <button type="button" class="social-btn github">
+                        <i class="fab fa-github"></i>
+                    </button>
+                </div>
+                <div class="auth-switch">
+                    Don't have an account? <a href="#" id="show-signup">Sign Up</a>
+                </div>
+            </form>
+
+            <!-- OTP Verification Form -->
+            <form id="otp-form" class="auth-form">
+                <h2>Verify Your Email</h2>
+                <p class="otp-info">We've sent a 6-digit code to <span id="otp-email-display"></span></p>
+                <div class="form-group">
+                    <label for="otp-input"><i class="fas fa-shield-alt"></i> Enter OTP</label>
+                    <input type="text" id="otp-input" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code">
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span>Verify & Sign In</span>
+                    <i class="fas fa-check"></i>
+                </button>
+                <div class="auth-error" id="otp-error"></div>
+                <div class="otp-actions">
+                    <button type="button" id="resend-otp-btn" class="resend-btn">
+                        <i class="fas fa-redo"></i> Resend OTP
+                    </button>
+                    <button type="button" id="back-to-login-btn" class="back-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Login
+                    </button>
+                </div>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signup-form" class="auth-form">
+                <h2>Create Account</h2>
+                <div class="form-group">
+                    <label for="signup-name"><i class="fas fa-user"></i> Full Name</label>
+                    <input type="text" id="signup-name" placeholder="Enter your name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-email"><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password"><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password (min 6 characters)" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="signup-confirm-password"><i class="fas fa-lock"></i> Confirm Password</label>
+                    <input type="password" id="signup-confirm-password" placeholder="Confirm your password" required minlength="6">
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span>Create Account</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <div class="auth-error" id="signup-error"></div>
+                <div class="auth-divider">
+                    <span>or continue with</span>
+                </div>
+                <div class="social-login">
+                    <button type="button" class="social-btn google">
+                        <i class="fab fa-google"></i>
+                    </button>
+                    <button type="button" class="social-btn github">
+                        <i class="fab fa-github"></i>
+                    </button>
+                </div>
+                <div class="auth-switch">
+                    Already have an account? <a href="#" id="show-login">Sign In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container (Hidden until logged in) -->
+    <div id="app-container" class="app-container hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button id="close-sidebar-btn" class="close-sidebar-btn">&times;</button>
+            <div class="sidebar-header">
+                <img src="logo.png" alt="AI Finance Advisor Logo" class="logo">
+                <h1 class="sidebar-title">AI Finance</h1>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-section="dashboard-section">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#transactions" class="nav-item" data-section="transactions-section">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Transactions</span>
+                </a>
+                <a href="#ai-advisor" class="nav-item" data-section="ai-section">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Advisor</span>
+                </a>
+                <a href="#add-transaction" class="nav-item" data-section="transaction-section">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Add New</span>
+                </a>
+                <a href="#chatbot" class="nav-item" data-section="chatbot-section">
+                    <i class="fas fa-comments"></i>
+                    <span>AI Chat</span>
+                </a>
+                <a href="#gamification" class="nav-item" data-section="gamification-section">
+                    <i class="fas fa-trophy"></i>
+                    <span>Achievements</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile" id="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">User</span>
+                        <span class="user-email" id="user-email">user@email.com</span>
+                    </div>
+                    <button id="logout-btn" class="logout-btn" title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="theme-toggle">
+                        <input type="checkbox" id="theme-toggle" />
+                        <div class="slider round">
+                            <i class="fas fa-sun sun-icon"></i>
+                            <i class="fas fa-moon moon-icon"></i>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-container">
+            <header class="header">
+                <div class="header-content">
+                    <button id="menu-toggle" class="menu-toggle-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="header-title-main">AI Finance Advisor</h1>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <!-- Add Transaction Section -->
+                <section id="transaction-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-plus-circle"></i> Add Transaction</h2>
+                    </div>
+                    <form id="transactionForm" class="transaction-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="type">Type</label>
+                                <select id="type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="amount">Amount (₹)</label>
+                                <input type="number" id="amount" step="0.01" min="0" required placeholder="Enter amount in Rupees">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="category">Category</label>
+                                <input type="text" id="category" required placeholder="e.g., Food, Salary, Rent">
+                            </div>
+                            <div class="form-group">
+                                <label for="date">Date</label>
+                                <input type="date" id="date" required>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="description">Description (Optional)</label>
+                            <input type="text" id="description" placeholder="Additional details">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Transaction
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="content-section active">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tachometer-alt"></i> Financial Dashboard</h2>
+                        <div>
+                            <button id="refreshBtn" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button id="clearAllBtn" class="btn btn-danger" style="margin-left:10px;">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-cards">
+                        <div class="card">
+                            <div class="card-icon income">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Total Income</h3>
+                                <p id="totalIncome">₹0.00</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon expense">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Total Expenses</h3>
+                                <p id="totalExpenses">₹0.00</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon net">
+                                <i class="fas fa-balance-scale"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3>Net Amount</h3>
+                                <p id="netAmount">₹0.00</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="charts-container">
+                        <div class="chart-card">
+                            <h3><i class="fas fa-chart-bar"></i> Income vs Expenses (Monthly)</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="incomeExpenseChart" class="chart-canvas"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3><i class="fas fa-chart-pie"></i> Expense Breakdown</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="categoryChart" class="chart-canvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AI Advisor Section -->
+                <section id="ai-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-robot"></i> AI Financial Advisor</h2>
+                        <button id="getAdviceBtn" class="btn btn-ai">
+                            <i class="fas fa-magic"></i> Get AI Advice
+                        </button>
+                    </div>
+                    
+                    <div id="aiAdviceContainer" class="ai-advice-container">
+                        <div class="advice-placeholder">
+                            <i class="fas fa-lightbulb"></i>
+                            <p>Click "Get AI Advice" to receive personalized financial recommendations based on your transaction history.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Transactions Section -->
+                <section id="transactions-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history"></i> Recent Transactions</h2>
+                        <div class="filters">
+                            <select id="typeFilter">
+                                <option value="">All Types</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                            <input type="text" id="categoryFilter" placeholder="Filter by category">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="category">Category <i class="fas fa-sort"></i></th>
+                                    <th data-sort="amount">Amount <i class="fas fa-sort"></i></th>
+                                    <th data-sort="date">Date <i class="fas fa-sort"></i></th>
+                                    <th>Description</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsList">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- AI Chatbot Section -->
+                <section id="chatbot-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-comments"></i> AI Financial Assistant</h2>
+                        <button id="clearChatBtn" class="btn btn-secondary">
+                            <i class="fas fa-broom"></i> Clear Chat
+                        </button>
+                    </div>
+                    
+                    <div class="chatbot-container">
+                        <div id="chatMessages" class="chat-messages">
+                            <div class="chat-message bot-message">
+                                <div class="message-avatar">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="message-content">
+                                    <p>Hello! I'm your AI Financial Assistant. Ask me anything about personal finance, investments, budgeting, or any financial questions you have!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <input type="text" id="chatInput" placeholder="Ask me anything about finance..." maxlength="500">
+                                <button id="sendChatBtn" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="quick-questions">
+                                <span>Quick questions:</span>
+                                <button class="quick-question-btn" data-question="How can I save more money?">💰 Save Money</button>
+                                <button class="quick-question-btn" data-question="What are the best investment options in India?">📈 Investments</button>
+                                <button class="quick-question-btn" data-question="How to plan for retirement?">🏦 Retirement</button>
+                                <button class="quick-question-btn" data-question="Tax saving strategies in India">💼 Tax Saving</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gamification Section -->
+                <section id="gamification-section" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-trophy"></i> Your Financial Journey</h2>
+                        <button id="refreshGamificationBtn" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    
+                    <div class="player-stats-container">
+                        <div class="player-card">
+                            <div class="player-info">
+                                <div class="player-avatar">
+                                    <i class="fas fa-user-circle"></i>
+                                    <div class="level-badge">
+                                        <span id="playerLevel">1</span>
+                                    </div>
+                                </div>
+                                <div class="player-details">
+                                    <h3>Financial Master</h3>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="levelProgress"></div>
+                                    </div>
+                                    <p><span id="currentPoints">0</span> / <span id="nextLevelPoints">100</span> XP</p>
+                                </div>
+                            </div>
+                            <div class="total-points">
+                                <i class="fas fa-star"></i>
+                                <span id="totalPoints">0</span> Points
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="streaks-container">
+                        <div class="streak-card">
+                            <div class="streak-icon">🔥</div>
+                            <div class="streak-info">
+                                <h4>Daily Tracking</h4>
+                                <div class="streak-count">
+                                    <span id="dailyStreak">0</span> days
+                                </div>
+                                <p>Longest: <span id="longestDailyStreak">0</span> days</p>
+                            </div>
+                        </div>
+                        <div class="streak-card">
+                            <div class="streak-icon">💰</div>
+                            <div class="streak-info">
+                                <h4>Saving Goals</h4>
+                                <div class="streak-count">
+                                    <span id="savingStreak">0</span> streak
+                                </div>
+                                <p>Longest: <span id="longestSavingStreak">0</span> streak</p>
+                            </div>
+                        </div>
+                        <div class="streak-card">
+                            <div class="streak-icon">🎯</div>
+                            <div class="streak-info">
+                                <h4>Budget Control</h4>
+                                <div class="streak-count">
+                                    <span id="budgetStreak">0</span> months
+                                </div>
+                                <p>Longest: <span id="longestBudgetStreak">0</span> months</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="challenges-container">
+                        <h3><i class="fas fa-flag"></i> Active Challenges</h3>
+                        <div id="activeChallenges" class="challenges-grid">
+                        </div>
+                    </div>
+
+                    <div class="achievements-container">
+                        <h3><i class="fas fa-medal"></i> Achievements</h3>
+                        <div class="achievement-filters">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="unlocked">Unlocked</button>
+                            <button class="filter-btn" data-filter="locked">Locked</button>
+                            <button class="filter-btn" data-filter="consistency">Consistency</button>
+                            <button class="filter-btn" data-filter="saving">Saving</button>
+                            <button class="filter-btn" data-filter="investing">Investing</button>
+                            <button class="filter-btn" data-filter="budgeting">Budgeting</button>
+                        </div>
+                        <div id="achievementsList" class="achievements-grid">
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification hidden">
+        <span id="notificationMessage"></span>
+        <button id="closeNotification" class="close-btn">&times;</button>
+    </div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay"></div>
+
+    <!-- Back to Top Button -->
+    <button id="back-to-top" class="back-to-top" title="Back to Top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>
