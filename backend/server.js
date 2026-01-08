@@ -38,7 +38,8 @@ app.use(cors({
     'http://localhost:3001',  // Alternative localhost
     'http://192.168.0.150:8080', // Network access
     'http://localhost:3000',  // Fallback for development
-    'http://127.0.0.1:3000'   // Fallback for development
+    'http://127.0.0.1:3000',  // Fallback for development
+    'https://ai-finance-advisor-liart.vercel.app' // Vercel production frontend
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
