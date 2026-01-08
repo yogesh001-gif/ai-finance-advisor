@@ -11,6 +11,8 @@ const aiAdviceRoutes = require('./routes/aiAdvice');
 const gamificationRoutes = require('./routes/gamification');
 
 const app = express();
+// Trust first proxy (needed for correct rate limiting behind proxies)
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // Security middleware
