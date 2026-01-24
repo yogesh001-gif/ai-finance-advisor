@@ -40,7 +40,6 @@ const allowedOrigins = [
   'http://192.168.0.150:8080',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-
   'https://ai-finance-advisorr.vercel.app'
 ];
 
@@ -62,12 +61,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => {
-    console.error('MongoDB Error:', err.message);
-    process.exit(1);
-  });
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-finance-advisor', {
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
@@ -87,15 +84,9 @@ app.options('*', (req, res) => {
   res.sendStatus(200);
 });
 
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'AI Finance Advisor API is running' });
-});
-
-// Root route
-app.get('/', (req, res) => {
-  res.send('AI Finance Advisor Backend is Running 🚀');
 });
 
 // Error handling middleware
