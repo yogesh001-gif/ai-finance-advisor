@@ -6,43 +6,51 @@ const url = require('url');
 const PORT = 8080;
 
 const mimeTypes = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.svg': 'image/svg+xml',
-    '.json': 'application/json',
-    '.ico': 'image/x-icon'
+  '.html': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+  '.ico': 'image/x-icon'
 };
 
 const server = http.createServer((req, res) => {
-    // Parse URL to get pathname without query parameters
-    const parsedUrl = url.parse(req.url);
-    const pathname = parsedUrl.pathname;
-    
-    console.log('Request:', req.method, pathname);
-    
-    let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
-    const ext = path.extname(filePath).toLowerCase();
-    
-    fs.readFile(filePath, (err, data) => {
-        if (err) {
-            console.log('File not found:', filePath);
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('Not found: ' + pathname);
-        } else {
-            res.writeHead(200, {
-                'Content-Type': mimeTypes[ext] || 'application/octet-stream',
-                'Access-Control-Allow-Origin': '*',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
-            });
-            res.end(data);
+  const parsedUrl = url.parse(req.url);
+  let pathname = parsedUrl.pathname;
+
+  console.log(`${req.method} ${pathname}`);
+
+  // Default route
+  if (pathname === '/') pathname = '/index.html';
+
+  let filePath = path.join(__dirname, pathname);
+  const ext = path.extname(filePath).toLowerCase();
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      // SPA fallback – always return index.html
+      fs.readFile(path.join(__dirname, 'index.html'), (err2, indexData) => {
+        if (err2) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          return res.end('404 Not Found');
         }
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(indexData);
+      });
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
+    res.end(data);
+  });
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Frontend server running on http://localhost:${PORT}`);
-    console.log(`Open your browser and visit: http://localhost:${PORT}`);
+  console.log(`Frontend running at: http://localhost:${PORT}`);
 });

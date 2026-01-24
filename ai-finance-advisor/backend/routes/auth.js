@@ -191,6 +191,29 @@ router.post('/login', async (req, res) => {
             });
         }
 
+        // Check if email is configured - if not, skip OTP and login directly
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            console.log('Email not configured, skipping OTP verification');
+            
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+            
+            // Generate token and login directly
+            const token = generateToken(user._id);
+            
+            return res.json({
+                message: 'Login successful!',
+                token,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    lastLogin: user.lastLogin
+                }
+            });
+        }
+
         // Generate and store OTP
         const otp = generateOTP();
         const otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
@@ -202,14 +225,38 @@ router.post('/login', async (req, res) => {
             userName: user.name
         });
 
-        // Send OTP email
-        await sendOTPEmail(email, otp, user.name);
-
-        res.json({
-            message: 'OTP sent to your email!',
-            requiresOTP: true,
-            email: email.toLowerCase()
-        });
+        // Try to send OTP email
+        try {
+            await sendOTPEmail(email, otp, user.name);
+            
+            res.json({
+                message: 'OTP sent to your email!',
+                requiresOTP: true,
+                email: email.toLowerCase()
+            });
+        } catch (emailError) {
+            console.error('Email sending failed:', emailError.message);
+            
+            // If email fails, login directly without OTP
+            otpStore.delete(email.toLowerCase());
+            
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+            
+            const token = generateToken(user._id);
+            
+            return res.json({
+                message: 'Login successful! (Email service unavailable)',
+                token,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    lastLogin: user.lastLogin
+                }
+            });
+        }
 
     } catch (error) {
         console.error('Login error:', error);

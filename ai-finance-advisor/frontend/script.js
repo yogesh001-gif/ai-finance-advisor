@@ -339,9 +339,11 @@ function setupAuthListeners() {
                 pendingOTPEmail = data.email;
                 showOTPForm(data.email);
                 showNotification('OTP sent to your email!', 'success');
+            } else if (data.token) {
+                // Direct login (when email service unavailable or not configured)
+                await completeLogin(data);
             } else {
-                // Direct login (fallback)
-                completeLogin(data);
+                throw new Error('Unexpected response from server');
             }
 
         } catch (error) {
@@ -472,17 +474,30 @@ function setupAuthListeners() {
         const emailEl = document.getElementById('signup-email');
         const passwordEl = document.getElementById('signup-password');
         const confirmPasswordEl = document.getElementById('signup-confirm-password');
-        
         if (!nameEl || !emailEl || !passwordEl || !confirmPasswordEl) return;
-        
         const name = nameEl.value.trim();
         const email = emailEl.value.trim();
         const password = passwordEl.value;
         const confirmPassword = confirmPasswordEl.value;
 
+        // Frontend validation
+        if (!name || !email || !password || !confirmPassword) {
+            if (signupError) {
+                signupError.textContent = 'All fields are required.';
+                signupError.classList.add('show');
+            }
+            return;
+        }
+        if (password.length < 6) {
+            if (signupError) {
+                signupError.textContent = 'Password must be at least 6 characters.';
+                signupError.classList.add('show');
+            }
+            return;
+        }
         if (password !== confirmPassword) {
             if (signupError) {
-                signupError.textContent = 'Passwords do not match';
+                signupError.textContent = 'Passwords do not match.';
                 signupError.classList.add('show');
             }
             return;
@@ -499,25 +514,20 @@ function setupAuthListeners() {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, email, password, confirmPassword })
             });
-
             const data = await response.json();
-
             if (!response.ok) {
                 throw new Error(data.error || 'Registration failed');
             }
-
             // Save auth data
             authToken = data.token;
             currentUser = data.user;
             localStorage.setItem('authToken', authToken);
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
             // Update UI
             updateAuthUI();
             showNotification(`Welcome ${currentUser.name}! Your account has been created.`, 'success');
-
         } catch (error) {
             if (signupError) {
                 signupError.textContent = error.message;
