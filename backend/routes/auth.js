@@ -196,27 +196,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Check if email is configured - if not, skip OTP and login directly
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            console.log('Email not configured, skipping OTP verification');
-            
-            // Update last login
-            user.lastLogin = new Date();
-            await user.save();
-            
-            // Generate token and login directly
-            const token = generateToken(user._id);
-            
-            return res.json({
-                message: 'Login successful!',
-                token,
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    lastLogin: user.lastLogin
-                }
-            });
-        }
+        // Always require OTP, regardless of email configuration
 
         // Generate and store OTP in Redis
         const otp = generateOTP();
@@ -234,37 +214,19 @@ router.post('/login', async (req, res) => {
         );
 
         // Try to send OTP email
+        let otpMessage = 'OTP generated.';
         try {
             await sendOTPEmail(email, otp, user.name);
-            
-            res.json({
-                message: 'OTP sent to your email!',
-                requiresOTP: true,
-                email: email.toLowerCase()
-            });
+            otpMessage = 'OTP sent to your email!';
         } catch (emailError) {
             console.error('Email sending failed:', emailError.message);
-            
-            // If email fails, login directly without OTP
-            await otpRedis.del(`otp:${email.toLowerCase()}`);
-            
-            // Update last login
-            user.lastLogin = new Date();
-            await user.save();
-            
-            const token = generateToken(user._id);
-            
-            return res.json({
-                message: 'Login successful! (Email service unavailable)',
-                token,
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    lastLogin: user.lastLogin
-                }
-            });
+            otpMessage = 'OTP generated, but email could not be sent.';
         }
+        res.json({
+            message: otpMessage,
+            requiresOTP: true,
+            email: email.toLowerCase()
+        });
 
     } catch (error) {
         console.error('Login error:', error);
