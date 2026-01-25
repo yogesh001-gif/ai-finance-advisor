@@ -4,9 +4,13 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const { generateToken, authenticate } = require('../middleware/auth');
+const { Redis } = require('@upstash/redis');
 
-// In-memory OTP storage (use Redis in production)
-const otpStore = new Map();
+// Upstash Redis configuration
+const otpRedis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN
+});
 
 // Create email transporter
 const transporter = nodemailer.createTransport({
@@ -214,16 +218,20 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Generate and store OTP
+        // Generate and store OTP in Redis
         const otp = generateOTP();
         const otpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
-        
-        otpStore.set(email.toLowerCase(), {
-            otp,
-            expiry: otpExpiry,
-            userId: user._id,
-            userName: user.name
-        });
+        await otpRedis.set(
+            `otp:${email.toLowerCase()}`,
+            JSON.stringify({
+                otp,
+                expiry: otpExpiry,
+                userId: user._id,
+                userName: user.name,
+                attempts: 0
+            }),
+            { ex: 300 } // 5 minutes expiry
+        );
 
         // Try to send OTP email
         try {
@@ -238,7 +246,7 @@ router.post('/login', async (req, res) => {
             console.error('Email sending failed:', emailError.message);
             
             // If email fails, login directly without OTP
-            otpStore.delete(email.toLowerCase());
+            await otpRedis.del(`otp:${email.toLowerCase()}`);
             
             // Update last login
             user.lastLogin = new Date();
@@ -275,56 +283,56 @@ router.post('/verify-otp', async (req, res) => {
             });
         }
 
-        const storedData = otpStore.get(email.toLowerCase());
-
-        if (!storedData) {
-            return res.status(401).json({ 
-                error: 'OTP expired or invalid. Please try again.' 
+        const redisKey = `otp:${email.toLowerCase()}`;
+        const storedRaw = await otpRedis.get(redisKey);
+        if (!storedRaw) {
+            return res.status(401).json({
+                error: 'OTP expired or invalid. Please try again.'
             });
         }
-
+        let storedData;
+        try {
+            storedData = JSON.parse(storedRaw);
+        } catch (e) {
+            await otpRedis.del(redisKey);
+            return res.status(401).json({
+                error: 'OTP expired or invalid. Please try again.'
+            });
+        }
         if (Date.now() > storedData.expiry) {
-            otpStore.delete(email.toLowerCase());
-            return res.status(401).json({ 
-                error: 'OTP has expired. Please request a new one.' 
+            await otpRedis.del(redisKey);
+            return res.status(401).json({
+                error: 'OTP has expired. Please request a new one.'
             });
         }
-
         // Track wrong OTP attempts
         if (storedData.otp !== otp) {
             storedData.attempts = (storedData.attempts || 0) + 1;
-            
             if (storedData.attempts >= 5) {
-                otpStore.delete(email.toLowerCase());
-                return res.status(401).json({ 
-                    error: 'Too many wrong OTP attempts. Please request a new OTP.' 
+                await otpRedis.del(redisKey);
+                return res.status(401).json({
+                    error: 'Too many wrong OTP attempts. Please request a new OTP.'
                 });
             }
-            
-            return res.status(401).json({ 
-                error: `Wrong OTP. ${5 - storedData.attempts} attempts remaining.` 
+            await otpRedis.set(redisKey, JSON.stringify(storedData), { ex: Math.floor((storedData.expiry - Date.now()) / 1000) });
+            return res.status(401).json({
+                error: `Wrong OTP. ${5 - storedData.attempts} attempts remaining.`
             });
         }
-
         // OTP verified - complete login
         const user = await User.findById(storedData.userId);
-        
         if (!user) {
-            return res.status(401).json({ 
-                error: 'User not found.' 
+            return res.status(401).json({
+                error: 'User not found.'
             });
         }
-
         // Update last login
         user.lastLogin = new Date();
         await user.save();
-
         // Generate token
         const token = generateToken(user._id);
-
         // Clear OTP
-        otpStore.delete(email.toLowerCase());
-
+        await otpRedis.del(redisKey);
         res.json({
             message: 'Login successful!',
             token,
@@ -353,27 +361,31 @@ router.post('/resend-otp', async (req, res) => {
             });
         }
 
-        const storedData = otpStore.get(email.toLowerCase());
-
-        if (!storedData) {
-            return res.status(400).json({ 
-                error: 'No pending verification. Please login again.' 
+        const redisKey = `otp:${email.toLowerCase()}`;
+        const storedRaw = await otpRedis.get(redisKey);
+        if (!storedRaw) {
+            return res.status(400).json({
+                error: 'No pending verification. Please login again.'
             });
         }
-
+        let storedData;
+        try {
+            storedData = JSON.parse(storedRaw);
+        } catch (e) {
+            await otpRedis.del(redisKey);
+            return res.status(400).json({
+                error: 'No pending verification. Please login again.'
+            });
+        }
         // Generate new OTP
         const otp = generateOTP();
         const otpExpiry = Date.now() + 5 * 60 * 1000;
-        
-        otpStore.set(email.toLowerCase(), {
-            ...storedData,
-            otp,
-            expiry: otpExpiry
-        });
-
+        storedData.otp = otp;
+        storedData.expiry = otpExpiry;
+        storedData.attempts = 0;
+        await otpRedis.set(redisKey, JSON.stringify(storedData), { ex: 300 });
         // Send OTP email
         await sendOTPEmail(email, otp, storedData.userName);
-
         res.json({
             message: 'New OTP sent to your email!'
         });

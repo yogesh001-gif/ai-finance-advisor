@@ -11,97 +11,63 @@ const aiAdviceRoutes = require('./routes/aiAdvice');
 const gamificationRoutes = require('./routes/gamification');
 
 const app = express();
-// Enable trust proxy for correct client IP detection behind proxies (e.g., Render, Heroku, Nginx)
 app.set('trust proxy', 1);
-const PORT = process.env.PORT || 5000;
 
-// Security middleware
+const PORT = process.env.PORT || 5000;
+const FRONTEND_URL = 'https://ai-finance-advisorr.vercel.app';
+
+// Security headers
 app.use(helmet());
 
-// Rate limiting - for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // increased limit for normal usage
-  message: { error: 'Too many requests. Please try again later.' }
-});
-
+// Rate limit
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
-// Middleware
-const allowedOrigins = [
-  'http://127.0.0.1:8080',
-  'http://localhost:8080',
-  'http://127.0.0.1:3001',
-  'http://localhost:3001',
-  'http://192.168.0.150:8080',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://ai-finance-advisorr.vercel.app'
-];
-
+// 🔒 Production CORS (Vercel only)
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
+  origin: FRONTEND_URL,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-finance-advisor', {
+// MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 })
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => console.log('✅ MongoDB Connected'))
+.catch(err => console.error('❌ MongoDB Error:', err));
 
 // Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/ai-advice', aiAdviceRoutes);
 app.use('/api/gamification', gamificationRoutes);
 
-// Handle preflight requests for all routes
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
-
-// Health check endpoint
+// Health
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'AI Finance Advisor API is running' });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// Handle 404
-app.use('*', (req, res) => {
+// 404
+app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
 module.exports = app;
