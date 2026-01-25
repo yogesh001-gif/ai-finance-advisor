@@ -55,7 +55,24 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'AI Finance Advisor API is running' });
 });
 
-// 404
+
+// Root route for Render or base URL
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>AI Finance Advisor API</h1>
+    <p>Welcome! The backend is running.</p>
+    <ul>
+      <li>Health check: <a href="/api/health">/api/health</a></li>
+      <li>Auth: <code>/api/auth</code></li>
+      <li>Transactions: <code>/api/transactions</code></li>
+      <li>AI Advice: <code>/api/ai-advice</code></li>
+      <li>Gamification: <code>/api/gamification</code></li>
+    </ul>
+    <p>See <a href="https://github.com/yogesh001-gif/ai-finance-advisor">GitHub Repo</a></p>
+  `);
+});
+
+// 404 for all other undefined routes
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
