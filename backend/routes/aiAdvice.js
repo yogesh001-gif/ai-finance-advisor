@@ -379,7 +379,7 @@ Answer:`;
         console.error('Chat Error:', error);
         
         if (error.message && error.message.includes('API key')) {
-            return res.status(401).json({ 
+            return res.status(500).json({ 
                 error: 'Invalid Gemini API key. Please check your API key configuration.' 
             });
         }
