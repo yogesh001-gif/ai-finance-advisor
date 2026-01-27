@@ -196,7 +196,21 @@ router.post('/login', async (req, res) => {
         }
 
         // Check if email is configured - if not, skip OTP and login directly
-        // Always require OTP, regardless of email configuration
+        // Never require OTP, always log in directly
+        user.lastLogin = new Date();
+        await user.save();
+        const token = generateToken(user._id);
+        return res.json({
+            message: 'Login successful!',
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                lastLogin: user.lastLogin
+            }
+        });
+        // (OTP logic is now bypassed)
 
         // Generate and store OTP in Redis
         const otp = generateOTP();
