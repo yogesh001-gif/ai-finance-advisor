@@ -196,7 +196,7 @@ Keep response focused and use their ACTUAL numbers throughout.`;
         
         // Provide more specific error messages
         if (error.message && error.message.includes('API key')) {
-            return res.status(401).json({ 
+            return res.status(500).json({ 
                 error: 'Invalid Gemini API key. Please check your API key configuration.' 
             });
         }
@@ -208,7 +208,7 @@ Keep response focused and use their ACTUAL numbers throughout.`;
         }
         
         if (error.message && error.message.includes('invalid_api_key')) {
-            return res.status(401).json({ 
+            return res.status(500).json({ 
                 error: 'Invalid Gemini API key' 
             });
         }
