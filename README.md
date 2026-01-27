@@ -318,6 +318,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support & Contact
 
+## Connect with the Author
+
+You can find me on LinkedIn: [www.linkedin.com/in/yogeshahlawat](https://www.linkedin.com/in/yogeshahlawat)
+
 For issues and questions:
 1. Check the troubleshooting section
 2. Review the API documentation
